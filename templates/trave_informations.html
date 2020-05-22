@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>excel/pdf数据报表导出</title>
+    <link href="../static/binary-Admin-v1.1/assets/css/bootstrap.css" rel="stylesheet">
+    <link href="../static/binary-Admin-v1.1/assets/css/font-awesome.css" rel="stylesheet">
+    <link href="../static/binary-Admin-v1.1/assets/css/custom.css" rel="stylesheet">
+    <link href="http://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet" type="text/css">
+    <link href="../static/binary-Admin-v1.1/assets/js/dataTables/dataTables.bootstrap.css" rel="stylesheet">
+    <link href="../static/layui/css/layui.css" media="all" rel="stylesheet">
+    <script src="../static/layui/layui.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="../static/js/vue-2.5.16.js"></script>
+    <script type="text/javascript" src="../static/js/axios-0.18.0.min.js"></script>
+    <script type="text/javascript" src="../static/js/host.js"></script>
+</head>
+<body>
+<div id="wrapper">
+    <nav class="navbar navbar-default navbar-cls-top" role="navigation" style="margin-bottom: 0">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".sidebar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="index.html">欢迎您:Dario</a>
+        </div>
+        <div style="color: white; padding: 15px 50px 5px 50px; float: right; font-size: 16px;">
+            <a href="login.html" class="btn btn-danger square-btn-adjust" @click="logout">退出</a>
+        </div>
+    </nav>
+    <nav class="navbar-default navbar-side" role="navigation">
+        <div class="sidebar-collapse">
+            <ul class="nav" id="main-menu">
+                <li class="text-center">
+                    <img src="../static/binary-Admin-v1.1/assets/img/find_user.png" class="user-image img-responsive"/>
+                </li>
+                <li>
+                    <a href="index.html"><i class="fa fa-dashboard fa-3x"></i>主页</a>
+                </li>
+                <li>
+                    <a href="photo.html"><i class="fa fa-desktop fa-3x"></i>图片管理</a>
+                </li>
+                <li>
+                    <a href="customer_information.html"><i class="fa fa-table fa-3x"></i>客户信息管理</a>
+                </li>
+                <li>
+                    <a class="active-menu" href="trave_informations.html"><i class="fa fa-table fa-3x"></i>旅游订单管理</a>
+                </li>
+                <li>
+                    <a href="analysis.html"><i class="fa fa-bar-chart-o fa-3x"></i>数据分析展示</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- 页面部分 -->
+    <div id="page-wrapper">
+        <div id="page-inner">
+            <div class="layui-row">
+                <div class="layui-col-xs3" style="width: 150px;">
+                    <div class="site-demo-button" id="travel_info" style="margin-bottom: 0;">
+                        <button data-method="offset" data-type="auto" class="layui-btn layui-btn-normal">新建出团信息</button>
+                    </div>
+                </div>
+                <div class="layui-col-xs3" style="width: 150px;">
+                    <div class="site-demo-button" id="travel_user_info" style="margin-bottom: 0;">
+                        <button data-method="offset" data-type="auto" class="layui-btn layui-btn-normal">新建参团客户信息
+                        </button>
+                    </div>
+                </div>
+                <form class="layui-form" action="#">
+                    <div class="layui-col-xs3" style="width: 300px;">
+                        <label class="layui-form-label" for="warehouse" style="width: 105px">选择旅游团:</label>
+                        <div class="layui-input-block">
+                            <select name="title" id="warehouse" lay-filter="aihao">
+                                <option value="mine">我的</option>
+                                <option value="your">你的</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-col-xs3" style="width: 300px;">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label" style="width: 100px;">客户姓名:</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="name" required placeholder="请输入姓名" autocomplete="off"
+                                       class="layui-input" style="width: 180px; border: #5bc0de solid 1px;"/>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="layui-btn" lay-submit lay-filter="formDemo">搜索</button>
+                </form>
+            </div>
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+        </div>
+    </div>
+</div>
+<!-- vue js -->
+<script>
+    var vm = new Vue({
+        el: '#wrapper',
+        data: {
+            user_name: sessionStorage.user_name || localStorage.user_name,
+            user_id: sessionStorage.user_id || localStorage.user_id,
+            token: sessionStorage.token || localStorage.token,
+        },
+        methods: {
+            logout: function () {
+                alert("hello");
+                sessionStorage.clear();
+                localStorage.clear();
+                location.href = 'login.html'
+            }
+        },
+        mounted: {},
+    })
+</script>
+<!-- 表格编辑部分 -->
+<script type="text/html" id="barDemo">
+  <a class="layui-btn layui-btn-xs" lay-event="edit" id="edit_user">编辑</a>
+  <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+<!-- 表单渲染部分 -->
+<script>
+    layui.use(['table', 'layer'], function(){
+      var table = layui.table, layer=layui.layer, $ = layui.jquery;
+      table.render({
+          elem: '#test'
+          ,url:host + 'travel_user_info'
+          ,toolbar: '#toolbarDemo' //开启头部工具栏，并为其绑定左侧模板
+          ,defaultToolbar: ['filter', 'exports', 'print', { //自定义头部工具栏右侧图标。如无需自定义，去除该参数即可
+          title: '提示'
+          ,layEvent: 'LAYTABLE_TIPS'
+          ,icon: 'layui-icon-tips'
+          }]
+          ,title: '用户数据表'
+          ,cols: [[
+          {field:'id', title:'ID', width:80, fixed: 'left', unresize: true, sort: true}
+          ,{field:'name', title:'用户名', width:100}
+          ,{field:'ideal_price', title:'标价', width:80}
+          ,{field:'real_price', title:'下单价格', width:100}
+          ,{field:'pay_method', title:'支付方式', width:100}
+          ,{field:'pay_state', title:'支付状态', width:100}
+          ,{field:'pay_time', title:'支付时间', width:140}
+          ,{field:'desc', title:'备注', width:100}
+          ,{fixed: 'right', title:'操作', toolbar: '#barDemo', width:150}
+          ]]
+          ,page: true
+          ,skin:'row'
+          ,loading:true
+          ,limit:10
+          ,limits:[10,20,30,40,50]
+      });
+      //监听行工具事件
+      table.on('tool(test)', function(obj){
+          var data = obj.data;
+          //console.log(obj)
+          if(obj.event === 'del'){
+          layer.confirm('真的删除行么', function(index){
+              // 删除操作, 发送ajax请求 这里是物理删除不是逻辑删除
+              var $ = layui.$;
+              $.ajax({
+                  type: 'post',
+                  url:host + 'travel_user_info/delete',
+                  data:{
+                      id: data.id,
+                      travel_info_id: data.travel_info_id,
+                  },
+                  success: function (data) {
+                      //删除成功
+                      if(data == '删除成功'){
+                          alert("删除成功");
+                          layer.close(index);
+                          window.location.reload() // 刷新页面
+                      }else {
+                          alert("操作有误，重新删除");
+                          layer.close(index);
+                      }
+                  },
+                  error:function (data) {
+                      //删除失败
+                      alert("删除失败")
+                  }
+              })
+              layer.close(index);
+          });
+          } else if(obj.event === 'edit'){
+          //监听编辑事件
+          console.log(obj.data);
+          layer.open({
+                type: 2,
+                skin: 'layui-layer-demo', //样式类名
+                title: '修改客户信息页面',
+                closeBtn: 1, //不显示关闭按钮
+                anim: 2,
+                area: ['893px', '500px'],
+                shadeClose: true, //开启遮罩关闭
+                content: 'change_travel_user_info.html?id=' + obj.data.id + '&' + 'travel_info_id=' + obj.data.travel_info_id,
+                anim: 5 //动画类型
+                });
+        }
+      });
+    });
+</script>
+<!-- 弹出新建出团信息页面 -->
+<script>
+    layui.use('layer', function(){ //独立版的layer无需执行这一句
+          var $ = layui.jquery, layer = layui.layer; //独立版的layer无需执行这一句
+          //触发事件
+          var active = {
+            setTop: function(){
+              var that = this;
+              //多窗口模式，层叠置顶
+            }
+            ,offset: function(othis){
+              var type = othis.data('type')
+              ,text = othis.text();
+
+              layer.open({
+                type: 1
+                ,offset: type //具体配置参考：http://www.layui.com/doc/modules/layer.html#offset
+                ,id: 'travel_info'+type //防止重复弹出
+                ,content: '<div style="padding: 20px 100px;">'+ text +'</div>'
+                ,btn: '关闭全部'
+                ,btnAlign: 'c' //按钮居中
+                ,shade: 0 //不显示遮罩
+                ,yes: function(){
+                  layer.closeAll();
+                }
+              });
+            }
+          };
+
+          $('#travel_info .layui-btn').on('click', function(){
+                layer.open({
+                type: 2,
+                skin: 'layui-layer-demo', //样式类名
+                title: '新建出团信息',
+                closeBtn: 1, //不显示关闭按钮
+                anim: 2,
+                area: ['893px', '600px'],
+                shadeClose: true, //开启遮罩关闭
+                content: 'upload_travel_info.html',
+                anim: 5 //动画类型
+                });
+          });
+
+        });
+</script>
+<!-- 新建参团客户信息 -->
+<script>
+    layui.use('layer', function(){ //独立版的layer无需执行这一句
+          var $ = layui.jquery, layer = layui.layer; //独立版的layer无需执行这一句
+          //触发事件
+          var active = {
+            setTop: function(){
+              var that = this;
+              //多窗口模式，层叠置顶
+            }
+            ,offset: function(othis){
+              var type = othis.data('type')
+              ,text = othis.text();
+
+              layer.open({
+                type: 1
+                ,offset: type //具体配置参考：http://www.layui.com/doc/modules/layer.html#offset
+                ,id: 'travel_user_info'+type //防止重复弹出
+                ,content: '<div style="padding: 20px 100px;">'+ text +'</div>'
+                ,btn: '关闭全部'
+                ,btnAlign: 'c' //按钮居中
+                ,shade: 0 //不显示遮罩
+                ,yes: function(){
+                  layer.closeAll();
+                }
+              });
+            }
+          };
+          $('#travel_user_info .layui-btn').on('click', function(){
+                layer.open({
+                type: 2,
+                skin: 'layui-layer-demo', //样式类名
+                title: '新建客户信息',
+                closeBtn: 1, //不显示关闭按钮
+                anim: 2,
+                area: ['893px', '700px'],
+                shadeClose: true, //开启遮罩关闭
+                content: 'upload_travel_user_info.html',
+                anim: 5 //动画类型
+                });
+          });
+
+        });
+</script>
+<!-- 重新渲染下拉菜单栏 -->
+<script>
+    layui.use(['layer', 'form'], function () {
+        var $ = layui.$;
+        var form = layui.form;
+        // 跟新下拉菜单栏
+        $.ajax({
+            url:host + 'travel_info/select',
+            dataType:'json',
+            type:'get',
+            success: function (data) {
+            var selects='';
+            warehouse = data;
+            for(var i in warehouse){
+                    var  its='<option value="'+warehouse[i].title+'">'+warehouse[i].title+'</option>';
+                     selects +=its;
+                }
+            $("#warehouse").append(selects);
+            form.render();
+            }
+        })
+    })
+</script>
+<!-- 搜索栏js -->
+<script>
+    layui.use('form', function () {
+        var form = layui.form, $=layui.$;
+        // 监听提交
+        form.on('submit(formDemo)', function (data) {
+            //提交的数据
+            console.log(data.field);
+            //发起请求, 实现表格重载
+            layui.use('table', function () {
+                var table = layui.table;
+                table.reload('test', {
+                    url:host + 'travel_user_info/search',
+                    method: 'post',
+                    where: {
+                        'title': data.field.title,
+                        'name': data.field.name
+                    },
+
+                })
+            });
+            return false; //这里很重要, 一定要加这个.要不然提交后就会刷新一次
+        })
+    })
+</script>
+
+</body>
+</html>
